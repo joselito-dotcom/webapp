@@ -113,18 +113,32 @@ async function startDobleSpin() {
 /* Armo la ficha completa del restaurante en el modal */
 function openModal(brand) {
     const f = brand.fields;
+    
+    // CORRECCIÓN: Extraemos el comentario de la columna 'Highlight'
+    const personalHighlight = f.Highlight || "";
+
     document.getElementById('modal-body').innerHTML = `
         <img src="${f.photos?.[0]?.url || 'https://via.placeholder.com/600x300'}" style="width:100%; height:300px; object-fit:cover;">
         <div style="padding:30px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <h2 style="color:var(--accent); margin:0;">${f.Name}</h2>
                 <span style="background:var(--accent); color:white; padding:5px 12px; border-radius:10px; font-weight:800;">${f['Price Range'] || '$$'}</span>
             </div>
+
+            ${personalHighlight ? `
+                <div style="background: rgba(255, 215, 0, 0.1); border-radius: 12px; padding: 15px; border-left: 5px solid gold; margin-bottom: 20px;">
+                    <p style="margin: 0; font-style: italic; color: var(--text-color); font-size: 1rem; line-height: 1.4;">
+                        "${personalHighlight}"
+                    </p>
+                </div>` : ''}
+
             <p>⭐ ${f.Rating || '5.0'} | <b>${f.Vibe || 'Excelente'}</b></p>
             <p>${f.Description || 'Una joya seleccionada de SF.'}</p>
+            
             <div style="background:var(--bg-alt); padding:20px; border-radius:20px; border-left:8px solid var(--accent); margin:20px 0;">
                 <p style="margin:0; font-weight:800;">🔥 MUST TRY: ${f['Must Try']}</p>
             </div>
+            
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center;">SITIO WEB</a>
                 ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center;">LLAMAR</a>` : ''}
