@@ -68,7 +68,7 @@ body { margin: 0; font-family: 'Poppins', sans-serif; background: var(--bg); col
 .flag-card p {
     margin: 0;
     font-size: 0.85rem;
-    font-weight: 800;
+    font-weight: 850;
     color: var(--accent);
     word-wrap: break-word;
     width: 100%;
