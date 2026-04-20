@@ -1,9 +1,9 @@
-/* Primero configuro mis llaves de Airtable y preparo un "cache" para guardar los datos y no pedirlos a cada rato */
+/* Configuración de Airtable */
 const TOKEN = "patZFjogX1XgnDhuO.e131f470b23d3cfb8428aaf726a158ad460ed907dbaf1f9e777f904ca95407e3";
 const BASE_ID = "appHNVXjYwymT0EVC";
 let cache = { brands: [], cuisines: [], locations: [] };
 
-/* Aquí guardo todas mis traducciones para que la página sea bilingüe (Español e Inglés) al instante */
+/* Traducciones */
 const translations = {
     es: { 
         title: "The Best Experience", 
@@ -27,7 +27,7 @@ const translations = {
     }
 };
 
-/* Esta función descarga toda la info de Airtable cuando abres la página */
+/* Carga inicial de datos */
 async function init() {
     try {
         const h = { Authorization: `Bearer ${TOKEN}` };
@@ -36,35 +36,105 @@ async function init() {
             fetch(`https://api.airtable.com/v0/${BASE_ID}/cuisines`, { headers: h }),
             fetch(`https://api.airtable.com/v0/${BASE_ID}/Locations`, { headers: h })
         ]);
-        const b = await rB.json(); cache.brands = b.records;
-        const c = await rC.json(); cache.cuisines = c.records;
-        const l = await rL.json(); cache.locations = l.records;
+        const b = await rB.json(); cache.brands = b.records || [];
+        const c = await rC.json(); cache.cuisines = c.records || [];
+        const l = await rL.json(); cache.locations = l.records || [];
+        console.log("Datos cargados correctamente");
     } catch (e) {
-        console.error("Error cargando datos:", e);
+        console.error("Error cargando datos de Airtable:", e);
     }
 }
 
-/* Con esto hago que todos los textos cambien de idioma sin recargar la web */
+/* Cambio de idioma */
 function changeLanguage(lang) {
     document.querySelectorAll('[data-key]').forEach(el => {
         const key = el.getAttribute('data-key');
-        if (translations[lang][key]) el.innerHTML = translations[lang][key];
+        if (translations[lang] && translations[lang][key]) {
+            el.innerHTML = translations[lang][key];
+        }
     });
 }
 
-/* El switch de modo oscuro */
+/* Modo Oscuro/Claro */
 function toggleTheme() {
     const b = document.body;
-    const isD = b.getAttribute('data-theme') === 'dark';
-    b.setAttribute('data-theme', isD ? 'light' : 'dark');
-    document.getElementById('theme-btn').innerText = isD ? '🌙' : '☀️';
+    const isDark = b.getAttribute('data-theme') === 'dark';
+    b.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.innerText = isDark ? '🌙' : '☀️';
 }
 
-/* La lógica de la ruleta: elige nación y luego un restaurante */
+/* Modal con Highlights */
+function openModal(brand) {
+    const f = brand.fields;
+    const personalHighlight = f.Highlight || "";
+
+    const modalBody = document.getElementById('modal-body');
+    if (!modalBody) return;
+
+    modalBody.innerHTML = `
+        <img src="${f.photos?.[0]?.url || 'https://via.placeholder.com/600x300'}" style="width:100%; height:300px; object-fit:cover;">
+        <div style="padding:30px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2 style="color:var(--accent); margin:0;">${f.Name}</h2>
+                <span style="background:var(--accent); color:white; padding:5px 12px; border-radius:10px; font-weight:800;">${f['Price Range'] || '$$'}</span>
+            </div>
+
+            ${personalHighlight ? `
+                <div style="background: rgba(255, 215, 0, 0.1); border-radius: 12px; padding: 15px; border-left: 5px solid gold; margin-bottom: 20px;">
+                    <p style="margin: 0; font-style: italic; color: var(--text-color); font-size: 1rem; line-height: 1.4;">
+                        "${personalHighlight}"
+                    </p>
+                </div>` : ''}
+
+            <p>⭐ ${f.Rating || '5.0'} | <b>${f.Vibe || 'Excelente'}</b></p>
+            <p>${f.Description || 'Una joya seleccionada de SF.'}</p>
+            
+            <div style="background:var(--bg-alt); padding:20px; border-radius:20px; border-left:8px solid var(--accent); margin:20px 0;">
+                <p style="margin:0; font-weight:800;">🔥 MUST TRY: ${f['Must Try'] || 'Delicioso'}</p>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center;">SITIO WEB</a>
+                ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center;">LLAMAR</a>` : ''}
+            </div>
+        </div>`;
+    const modal = document.getElementById('modal-detail');
+    if (modal) modal.style.display = 'flex';
+}
+
+/* Lógica de Banderas */
+function showBrandsByText(name) {
+    const c = document.getElementById('brands-container');
+    const s = document.getElementById('brands-section');
+    if (!c || !s) return;
+
+    s.style.display = 'block';
+    c.innerHTML = "";
+    
+    const filtered = cache.brands.filter(b => 
+        b.fields['cuisine type']?.some(id => cache.cuisines.find(x => x.id === id)?.fields.Name === name)
+    );
+
+    filtered.forEach(b => {
+        const div = document.createElement('div'); 
+        div.className = 'brand-card'; 
+        div.onclick = () => openModal(b);
+        div.innerHTML = `
+            <img src="${b.fields.Logo?.[0]?.url || 'https://via.placeholder.com/150'}">
+            <p style="font-weight:800; color:var(--accent); margin-top:15px;">${b.fields.Name}</p>`;
+        c.appendChild(div);
+    });
+    s.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* Ruleta y demás funciones de control... */
 async function startDobleSpin() {
     const d = document.getElementById('casino-display');
     const p = document.getElementById('final-prize');
     const b = document.getElementById('btn-spin');
+    if(!d || !p || !b) return;
+
     p.style.display = 'none'; d.style.display = 'block'; b.disabled = true;
 
     const nats = ["Peruvian", "Mexican", "Japanese", "Chinese", "Thai", "Salvadoran", "American"];
@@ -110,83 +180,21 @@ async function startDobleSpin() {
     }, 1200);
 }
 
-/* Armo la ficha completa del restaurante en el modal */
-function openModal(brand) {
-    const f = brand.fields;
-    
-    // CORRECCIÓN: Extraemos el comentario de la columna 'Highlight'
-    const personalHighlight = f.Highlight || "";
-
-    document.getElementById('modal-body').innerHTML = `
-        <img src="${f.photos?.[0]?.url || 'https://via.placeholder.com/600x300'}" style="width:100%; height:300px; object-fit:cover;">
-        <div style="padding:30px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h2 style="color:var(--accent); margin:0;">${f.Name}</h2>
-                <span style="background:var(--accent); color:white; padding:5px 12px; border-radius:10px; font-weight:800;">${f['Price Range'] || '$$'}</span>
-            </div>
-
-            ${personalHighlight ? `
-                <div style="background: rgba(255, 215, 0, 0.1); border-radius: 12px; padding: 15px; border-left: 5px solid gold; margin-bottom: 20px;">
-                    <p style="margin: 0; font-style: italic; color: var(--text-color); font-size: 1rem; line-height: 1.4;">
-                        "${personalHighlight}"
-                    </p>
-                </div>` : ''}
-
-            <p>⭐ ${f.Rating || '5.0'} | <b>${f.Vibe || 'Excelente'}</b></p>
-            <p>${f.Description || 'Una joya seleccionada de SF.'}</p>
-            
-            <div style="background:var(--bg-alt); padding:20px; border-radius:20px; border-left:8px solid var(--accent); margin:20px 0;">
-                <p style="margin:0; font-weight:800;">🔥 MUST TRY: ${f['Must Try']}</p>
-            </div>
-            
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center;">SITIO WEB</a>
-                ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center;">LLAMAR</a>` : ''}
-            </div>
-        </div>`;
-    document.getElementById('modal-detail').style.display = 'flex';
+function closeModal() { 
+    const modal = document.getElementById('modal-detail');
+    if (modal) modal.style.display = 'none'; 
 }
 
-/* Filtro los locales al tocar una bandera */
-function showBrandsByText(name) {
-    const c = document.getElementById('brands-container');
-    document.getElementById('brands-section').style.display = 'block';
-    c.innerHTML = "";
-    
-    const filtered = cache.brands.filter(b => 
-        b.fields['cuisine type']?.some(id => cache.cuisines.find(x => x.id === id)?.fields.Name === name)
-    );
-
-    filtered.forEach(b => {
-        const div = document.createElement('div'); 
-        div.className = 'brand-card'; 
-        div.onclick = () => openModal(b);
-        div.innerHTML = `
-            <img src="${b.fields.Logo?.[0]?.url || 'https://via.placeholder.com/150'}">
-            <p style="font-weight:800; color:var(--accent); margin-top:15px;">${b.fields.Name}</p>`;
-        c.appendChild(div);
-    });
-    document.getElementById('brands-section').scrollIntoView({ behavior: 'smooth' });
-}
-
-/* Cerrar el modal */
-function closeModal() { document.getElementById('modal-detail').style.display = 'none'; }
-
-/* Control del carrusel */
+/* Carrusel */
 let currentSlide = 0;
 const slides = document.querySelectorAll('.carousel-slide');
-
-function showSlide(index) {
-    slides.forEach(slide => slide.classList.remove('active'));
-    slides[index].classList.add('active');
-}
-
 function nextSlide() {
+    if (slides.length === 0) return;
+    slides.forEach(slide => slide.classList.remove('active'));
     currentSlide = (currentSlide + 1) % slides.length;
-    showSlide(currentSlide);
+    slides[currentSlide].classList.add('active');
 }
-
 setInterval(nextSlide, 3500); 
 
-/* Arranco todo */
+/* Ejecución */
 init();
