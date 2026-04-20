@@ -64,7 +64,7 @@ function toggleTheme() {
     if (btn) btn.innerText = isDark ? '🌙' : '☀️';
 }
 
-/* Modal con Highlights */
+/* Modal con Highlights Corregido */
 function openModal(brand) {
     const f = brand.fields;
     const personalHighlight = f.Highlight || "";
@@ -81,8 +81,8 @@ function openModal(brand) {
             </div>
 
             ${personalHighlight ? `
-                <div style="background: rgba(255, 215, 0, 0.1); border-radius: 12px; padding: 15px; border-left: 5px solid gold; margin-bottom: 20px;">
-                    <p style="margin: 0; font-style: italic; color: var(--text-color); font-size: 1rem; line-height: 1.4;">
+                <div style="background: rgba(212, 175, 55, 0.15); border-radius: 12px; padding: 15px; border-left: 5px solid var(--accent); margin-bottom: 20px;">
+                    <p style="margin: 0; font-style: italic; color: var(--text); font-size: 1rem; line-height: 1.4;">
                         "${personalHighlight}"
                     </p>
                 </div>` : ''}
@@ -128,7 +128,7 @@ function showBrandsByText(name) {
     s.scrollIntoView({ behavior: 'smooth' });
 }
 
-/* Ruleta y demás funciones de control... */
+/* Ruleta */
 async function startDobleSpin() {
     const d = document.getElementById('casino-display');
     const p = document.getElementById('final-prize');
