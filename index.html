@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Best Experience - SF</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body data-theme="light">
+
+    <nav class="settings-bar">
+        <div class="nav-content">
+            <div class="logo-text">THE BEST EXPERIENCE</div>
+            <div class="nav-controls">
+                <div class="lang-box">
+                    <span>🌐</span>
+                    <select id="lang-select" onchange="changeLanguage(this.value)" class="nav-select">
+                        <option value="es">ES</option>
+                        <option value="en">EN</option>
+                    </select>
+                </div>
+                <button onclick="toggleTheme()" class="theme-toggle-btn" id="theme-btn">🌙</button>
+            </div>
+        </div>
+    </nav>
+
+    <header class="main-header">
+        <h1 data-key="title">The Best Experience</h1>
+        <p data-key="subtitle">Explora los 52 mejores sabores de San Francisco</p>
+    </header>
+
+    <section class="gadiel-section">
+        <div class="gadiel-card">
+            <div class="host-avatar">👨‍🍳</div>
+            <div class="gadiel-body">
+                <p class="gadiel-text" data-key="host_msg">"Mi compa <strong>Gadiel</strong> probó la Jalea de <strong>El Mono</strong> y quedó impresionado... ¡es otro nivel!"</p>
+                <div class="collab-tag">— J.T. X GADIEL COLLAB</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="carousel-container">
+        <div class="carousel-track">
+            <div class="carousel-slide"><img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400" alt="Food"></div>
+            <div class="carousel-slide"><img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400" alt="Food"></div>
+            <div class="carousel-slide"><img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400" alt="Food"></div>
+            <div class="carousel-slide"><img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400" alt="Food"></div>
+            <div class="carousel-slide"><img src="https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400" alt="Food"></div>
+            <div class="carousel-slide"><img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400" alt="Food"></div>
+            <div class="carousel-slide"><img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400" alt="Food"></div>
+            <div class="carousel-slide"><img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400" alt="Food"></div>
+            <div class="carousel-slide"><img src="https://images.unsplash.com/photo-1567620905732-2d1ec7bb7445?w=400" alt="Food"></div>
+        </div>
+    </div>
+
+    <section class="ruleta-section">
+        <div class="ruleta-card">
+            <h2 data-key="ruleta_title">¿No sabes qué comer hoy?</h2>
+            <div id="casino-display" class="casino-box" style="display:none;">---</div>
+            <button class="btn-main" id="btn-spin" onclick="startDobleSpin()" data-key="ruleta_btn">🎰 ¡ELIGE POR MÍ!</button>
+            <div id="final-prize" style="display:none; margin-top:20px;"></div>
+        </div>
+    </section>
+
+    <section class="nations-section">
+        <h2 style="text-align:center; color:var(--primary); margin-bottom:30px;" data-key="choose_nation">Selecciona una Nación</h2>
+        <div class="flags-grid">
+            <div class="flag-card" onclick="showBrandsByText('Peruvian')">🇵🇪<p>PERUVIAN</p></div>
+            <div class="flag-card" onclick="showBrandsByText('Mexican')">🇲🇽<p>MEXICAN</p></div>
+            <div class="flag-card" onclick="showBrandsByText('Japanese')">🇯🇵<p>JAPANESE</p></div>
+            <div class="flag-card" onclick="showBrandsByText('Chinese')">🇨🇳<p>CHINESE</p></div>
+            <div class="flag-card" onclick="showBrandsByText('Thai')">🇹🇭<p>THAI</p></div>
+            <div class="flag-card" onclick="showBrandsByText('Salvadoran')">🇸🇻<p>SALVADORAN</p></div>
+            <div class="flag-card" onclick="showBrandsByText('American')">🇺🇸<p>AMERICAN</p></div>
+        </div>
+    </section>
+
+    <section id="brands-section" style="display:none; padding:40px 20px;">
+        <div class="logos-grid" id="brands-container"></div>
+    </section>
+
+    <section class="contact-section">
+        <div class="contact-card">
+            <h2 data-key="contact_title">Libro de Sugerencias</h2>
+            <form action="https://formspree.io/f/xrerlldn" method="POST">
+                <input type="email" name="email" placeholder="TU EMAIL" required class="form-input">
+                <textarea name="message" placeholder="¿QUÉ LUGAR FALTA EN LA LISTA?" required class="form-textarea"></textarea>
+                <button type="submit" class="btn-main">ENVIAR RECOMENDACIÓN</button>
+            </form>
+        </div>
+    </section>
+
+    <footer>
+        <p>Creado por <strong>Joselito Tantalean</strong></p>
+        <div class="social-links">
+            <a href="https://www.linkedin.com/in/joselito-tantalean/" target="_blank"><img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="35"></a>
+            <a href="https://github.com/joselito-tantalean" target="_blank"><img src="https://cdn-icons-png.flaticon.com/512/25/25231.png" width="35"></a>
+        </div>
+    </footer>
+
+    <div id="modal-detail" class="modal" onclick="if(event.target == this) closeModal()">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="//code.tidio.co/s0dditk6tinmjime28if8ct7x9ptxoea.js" async></script>
+</body>
+</html>
