@@ -1,3 +1,4 @@
+/* --- ESTILOS BASE --- */
 :root {
     --bg: #fdfbf7; --bg-alt: #f4f1ea; --card: #ffffff;
     --text: #334155; --primary: #c5a021; --accent: #d4af37;
@@ -14,46 +15,59 @@ body { margin: 0; font-family: 'Poppins', sans-serif; background: var(--bg); col
 .settings-bar { position: sticky; top: 0; z-index: 10000; background: var(--nav-bg); height: 80px; display: flex; align-items: center; border-bottom: 2px solid var(--accent); }
 .nav-content { max-width: 1400px; width: 100%; margin: 0 auto; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; }
 .logo-text { font-weight: 800; color: var(--accent); }
-
 .nav-controls { display: flex; gap: 15px; align-items: center; }
 .lang-box { display: flex; align-items: center; gap: 8px; background: var(--card); padding: 5px 12px; border-radius: 10px; border: 1px solid var(--accent); }
 .nav-select { background: transparent; color: var(--text); border: none; font-weight: 700; cursor: pointer; outline: none; }
 .theme-toggle-btn { width: 45px; height: 45px; border-radius: 50%; border: 1px solid var(--accent); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 2px 2px 0 var(--accent); }
 
+/* --- Estilos para los gatitos en el header --- */
 .main-header { text-align: center; padding: 60px 20px; }
+.header-content { display: flex; align-items: center; justify-content: center; gap: 30px; max-width: 1000px; margin: 0 auto; }
+.gato-icono { width: 200px; height: 200px; object-fit: cover; border-radius: 50%; border: 3px solid var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+/* Ocultar gatitos en móvil para no amontonar */
+@media (max-width: 600px) { .gato-icono { display: none; } }
+
+/* --- GADIEL SECTION  --- */
 .gadiel-section { padding: 20px; display: flex; justify-content: center; }
 .gadiel-card { background: var(--card); width: 100%; max-width: 750px; padding: 25px; border-radius: 25px; border: 2px solid var(--accent); display: flex; align-items: center; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
 .host-avatar { font-size: 50px; background: var(--accent); width: 80px; height: 80px; min-width: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; }
 
-.carousel-container { background: var(--bg-alt); padding: 20px 0; border-y: 1px solid var(--accent); overflow: hidden; margin: 30px 0; }
+/* ---  Estilos para el carrusel  --- */
+.carousel-container { position: relative; background: var(--bg-alt); padding: 20px 0; border-y: 1px solid var(--accent); overflow: hidden; margin: 30px 0; height: 300px; /* Altura fija para el carrusel */ }
 [data-theme="dark"] .carousel-container { background: #000; }
-.carousel-track { display: flex; width: calc(260px * 10); animation: scrollTrack 35s linear infinite; }
-.carousel-slide img { width: 230px; height: 160px; object-fit: cover; border-radius: 20px; margin: 0 15px; border: 2px solid var(--accent); }
-@keyframes scrollTrack { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-260px * 5)); } }
+.carousel-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1s ease-in-out; display: flex; justify-content: center; align-items: center; }
+.carousel-slide.active { opacity: 1; z-index: 1; }
+.carousel-slide img { width: 80%; height: 80%; object-fit: cover; border-radius: 20px; border: 2px solid var(--accent); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
 
+/* --- RULETA SECTION --- */
 .ruleta-section { padding: 40px 20px; text-align: center; }
 .ruleta-card { background: var(--card); padding: 50px; border-radius: 40px; border: 3px solid var(--accent); max-width: 800px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
 .casino-box { background: #0f172a; color: var(--accent); font-size: 2.2rem; font-weight: 800; padding: 40px; border-radius: 25px; border: 3px solid var(--accent); margin: 30px 0; }
 
+/* --- FLAGS GRID  --- */
 .flags-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 20px; padding: 20px 40px; max-width: 1300px; margin: 0 auto; }
 .flag-card { background: var(--card); padding: 25px 10px; border-radius: 20px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.05); font-size: 2rem; }
 .flag-card:hover { border-color: var(--accent); transform: translateY(-5px); }
 
+/* --- LOGOS GRID --- */
 .logos-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
 @media (max-width: 1100px) { .logos-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .logos-grid { grid-template-columns: 1fr; } }
 .brand-card { background: var(--card); padding: 25px; border-radius: 25px; text-align: center; border: 1.5px solid var(--bg-alt); transition: 0.3s; cursor: pointer; }
 .brand-card img { width: 100%; height: 100px; object-fit: contain; }
 
+/* --- CONTACT SECTION  --- */
 .contact-section { padding: 60px 20px; background: var(--bg-alt); }
 .contact-card { background: var(--card); max-width: 700px; margin: 0 auto; padding: 40px; border-radius: 30px; border: 3px solid var(--accent); text-align: center; }
 .form-input, .form-textarea { width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1.5px solid var(--accent); background: var(--bg); color: var(--text); font-family: inherit; box-sizing: border-box; }
 .btn-main { background: var(--accent); color: white; padding: 15px; border-radius: 15px; border: none; font-weight: 800; cursor: pointer; width: 100%; text-transform: uppercase; transition: 0.3s; }
 
+/* --- MODAL  --- */
 .modal { display: none; position: fixed; z-index: 100000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); align-items: center; justify-content: center; }
 .modal-content { background: var(--card); border-radius: 35px; width: 95%; max-width: 650px; position: relative; border: 2px solid var(--accent); overflow: hidden; max-height: 90vh; overflow-y: auto; }
 .close-btn { position: absolute; top: 15px; right: 15px; width: 45px; height: 45px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 25px; cursor: pointer; z-index: 101; }
 
+/* --- FOOTER  --- */
 footer { background: #0f172a; color: white; padding: 60px; text-align: center; border-top: 4px solid var(--accent); }
 .social-links img { margin: 0 10px; transition: 0.3s; }
 [data-theme="dark"] .social-links img { filter: invert(1); }

@@ -1,7 +1,9 @@
+/* Primero configuro mis llaves de Airtable y preparo un "cache" para guardar los datos y no pedirlos a cada rato */
 const TOKEN = "patZFjogX1XgnDhuO.e131f470b23d3cfb8428aaf726a158ad460ed907dbaf1f9e777f904ca95407e3";
 const BASE_ID = "appHNVXjYwymT0EVC";
 let cache = { brands: [], cuisines: [], locations: [] };
 
+/* Aquí guardo todas mis traducciones para que la página sea bilingüe (Español e Inglés) al instante */
 const translations = {
     es: { 
         title: "The Best Experience", 
@@ -25,6 +27,7 @@ const translations = {
     }
 };
 
+/* Esta función es el motor: se conecta a Airtable y descarga toda la info de los locales al cargar la página */
 async function init() {
     const h = { Authorization: `Bearer ${TOKEN}` };
     const [rB, rC, rL] = await Promise.all([
@@ -37,6 +40,7 @@ async function init() {
     const l = await rL.json(); cache.locations = l.records;
 }
 
+/* Con esto hago que todos los textos cambien de idioma sin tener que recargar la web */
 function changeLanguage(lang) {
     document.querySelectorAll('[data-key]').forEach(el => {
         const key = el.getAttribute('data-key');
@@ -49,6 +53,7 @@ function changeLanguage(lang) {
     }
 }
 
+/* Aquí programo el switch de modo oscuro para que el botón cambie de Luna a Sol y se vea genial */
 function toggleTheme() {
     const b = document.body;
     const isD = b.getAttribute('data-theme') === 'dark';
@@ -56,6 +61,7 @@ function toggleTheme() {
     document.getElementById('theme-btn').innerText = isD ? '🌙' : '☀️';
 }
 
+/* Esta es la lógica de mi ruleta: primero elijo una nación al azar y luego un restaurante de esa nación */
 async function startDobleSpin() {
     const d = document.getElementById('casino-display');
     const p = document.getElementById('final-prize');
@@ -88,6 +94,7 @@ async function startDobleSpin() {
     }, 1200);
 }
 
+/* Aquí es donde armo la "Ficha Completa". Dibujo la foto, el precio, el rating y pongo los botones de Web y para Llamar */
 function openModal(brand) {
     const f = brand.fields;
     document.getElementById('modal-body').innerHTML = `
@@ -112,6 +119,7 @@ function openModal(brand) {
     document.getElementById('modal-detail').style.display = 'flex';
 }
 
+/* Esta función filtra los restaurantes según la bandera que presionaste y crea las tarjetitas con sus logos */
 function showBrandsByText(name) {
     const c = document.getElementById('brands-container');
     document.getElementById('brands-section').style.display = 'block';
@@ -124,5 +132,23 @@ function showBrandsByText(name) {
     document.getElementById('brands-section').scrollIntoView({ behavior: 'smooth' });
 }
 
+/* Con esto cierro el modal de detalles cuando el usuario hace clic fuera o en la X */
 function closeModal() { document.getElementById('modal-detail').style.display = 'none'; }
+
+/* Aquí controlo mi carrusel para que las fotos pasen solas cada 3 segundos y la web se vea dinámica */
+let currentSlide = 0;
+const slides = document.querySelectorAll('.carousel-slide');
+
+function showSlide(index) {
+    slides.forEach(slide => slide.classList.remove('active'));
+    slides[index].classList.add('active');
+}
+
+function nextSlide() {
+    currentSlide = (currentSlide + 1) % slides.length;
+    showSlide(currentSlide);
+}
+
+setInterval(nextSlide, 3000); 
+
 init();
