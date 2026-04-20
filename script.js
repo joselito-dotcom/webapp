@@ -27,33 +27,32 @@ const translations = {
     }
 };
 
-/* Esta función es el motor: se conecta a Airtable y descarga toda la info de los locales al cargar la página */
+/* Esta función descarga toda la info de Airtable cuando abres la página */
 async function init() {
-    const h = { Authorization: `Bearer ${TOKEN}` };
-    const [rB, rC, rL] = await Promise.all([
-        fetch(`https://api.airtable.com/v0/${BASE_ID}/Brands`, { headers: h }),
-        fetch(`https://api.airtable.com/v0/${BASE_ID}/cuisines`, { headers: h }),
-        fetch(`https://api.airtable.com/v0/${BASE_ID}/Locations`, { headers: h })
-    ]);
-    const b = await rB.json(); cache.brands = b.records;
-    const c = await rC.json(); cache.cuisines = c.records;
-    const l = await rL.json(); cache.locations = l.records;
+    try {
+        const h = { Authorization: `Bearer ${TOKEN}` };
+        const [rB, rC, rL] = await Promise.all([
+            fetch(`https://api.airtable.com/v0/${BASE_ID}/Brands`, { headers: h }),
+            fetch(`https://api.airtable.com/v0/${BASE_ID}/cuisines`, { headers: h }),
+            fetch(`https://api.airtable.com/v0/${BASE_ID}/Locations`, { headers: h })
+        ]);
+        const b = await rB.json(); cache.brands = b.records;
+        const c = await rC.json(); cache.cuisines = c.records;
+        const l = await rL.json(); cache.locations = l.records;
+    } catch (e) {
+        console.error("Error cargando datos:", e);
+    }
 }
 
-/* Con esto hago que todos los textos cambien de idioma sin tener que recargar la web */
+/* Con esto hago que todos los textos cambien de idioma sin recargar la web */
 function changeLanguage(lang) {
     document.querySelectorAll('[data-key]').forEach(el => {
         const key = el.getAttribute('data-key');
         if (translations[lang][key]) el.innerHTML = translations[lang][key];
     });
-
-    const prizeBtn = document.querySelector('#final-prize .btn-main');
-    if (prizeBtn) {
-        prizeBtn.innerText = translations[lang].view_details_btn;
-    }
 }
 
-/* Aquí programo el switch de modo oscuro para que el botón cambie de Luna a Sol y se vea genial */
+/* El switch de modo oscuro */
 function toggleTheme() {
     const b = document.body;
     const isD = b.getAttribute('data-theme') === 'dark';
@@ -61,7 +60,7 @@ function toggleTheme() {
     document.getElementById('theme-btn').innerText = isD ? '🌙' : '☀️';
 }
 
-/* Esta es la lógica de mi ruleta: primero elijo una nación al azar y luego un restaurante de esa nación */
+/* La lógica de la ruleta: elige nación y luego un restaurante */
 async function startDobleSpin() {
     const d = document.getElementById('casino-display');
     const p = document.getElementById('final-prize');
@@ -69,13 +68,29 @@ async function startDobleSpin() {
     p.style.display = 'none'; d.style.display = 'block'; b.disabled = true;
 
     const nats = ["Peruvian", "Mexican", "Japanese", "Chinese", "Thai", "Salvadoran", "American"];
-    for(let i=0; i<15; i++) { d.innerText = nats[Math.floor(Math.random()*nats.length)]; await new Promise(r=>setTimeout(r,70)); }
+    for(let i=0; i<15; i++) { 
+        d.innerText = nats[Math.floor(Math.random()*nats.length)]; 
+        await new Promise(r=>setTimeout(r,70)); 
+    }
     const winNat = nats[Math.floor(Math.random()*nats.length)];
     d.innerText = "🌍 " + winNat;
 
     setTimeout(async () => {
-        const filtered = cache.brands.filter(br => br.fields['cuisine type']?.some(id => cache.cuisines.find(x => x.id === id)?.fields.Name === winNat));
-        for(let i=0; i<15; i++) { d.innerText = filtered[Math.floor(Math.random()*filtered.length)].fields.Name; await new Promise(r=>setTimeout(r,70)); }
+        const filtered = cache.brands.filter(br => 
+            br.fields['cuisine type']?.some(id => cache.cuisines.find(x => x.id === id)?.fields.Name === winNat)
+        );
+        
+        if (filtered.length === 0) {
+            d.innerText = "No hay locales aún";
+            b.disabled = false;
+            return;
+        }
+
+        for(let i=0; i<15; i++) { 
+            d.innerText = filtered[Math.floor(Math.random()*filtered.length)].fields.Name; 
+            await new Promise(r=>setTimeout(r,70)); 
+        }
+        
         const winner = filtered[Math.floor(Math.random()*filtered.length)];
         d.innerText = "🍴 " + winner.fields.Name;
 
@@ -84,58 +99,66 @@ async function startDobleSpin() {
             const currentLang = document.querySelector('#lang-select').value || 'es';
             const btnLabel = translations[currentLang].view_details_btn;
 
-            p.innerHTML = `<div style="background:var(--bg-alt); padding:30px; border-radius:25px; border:2.5px solid var(--accent);">
-                <p style="margin:0; font-size:1.4rem;"><b>${winner.fields.Name}</b></p>
-                <div style="background:var(--accent); color:white; padding:15px; border-radius:15px; margin:15px 0; font-weight:800;">🔥 MUST TRY: ${winner.fields['Must Try']}</div>
-                <button onclick='openModal(${JSON.stringify(winner).replace(/'/g, "&apos;")})' class="btn-main">${btnLabel}</button>
-            </div>`;
+            p.innerHTML = `
+                <div style="background:var(--bg-alt); padding:30px; border-radius:25px; border:2.5px solid var(--accent);">
+                    <p style="margin:0; font-size:1.4rem;"><b>${winner.fields.Name}</b></p>
+                    <div style="background:var(--accent); color:white; padding:15px; border-radius:15px; margin:15px 0; font-weight:800;">🔥 MUST TRY: ${winner.fields['Must Try'] || 'Delicioso Plato'}</div>
+                    <button onclick='openModal(${JSON.stringify(winner).replace(/'/g, "&apos;")})' class="btn-main">${btnLabel}</button>
+                </div>`;
             b.disabled = false;
         }, 1000);
     }, 1200);
 }
 
-/* Aquí es donde armo la "Ficha Completa". Dibujo la foto, el precio, el rating y pongo los botones de Web y para Llamar */
+/* Armo la ficha completa del restaurante en el modal */
 function openModal(brand) {
     const f = brand.fields;
     document.getElementById('modal-body').innerHTML = `
-        <img src="${f.photos?.[0]?.url || ''}" style="width:100%; height:300px; object-fit:cover;">
-        <div style="padding:40px;">
+        <img src="${f.photos?.[0]?.url || 'https://via.placeholder.com/600x300'}" style="width:100%; height:300px; object-fit:cover;">
+        <div style="padding:30px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2 style="color:var(--accent); margin:0; font-size:2rem;">${f.Name}</h2>
-                <span style="background:var(--accent); color:white; padding:8px 15px; border-radius:10px; font-weight:800;">${f['Price Range'] || '$$'}</span>
+                <h2 style="color:var(--accent); margin:0;">${f.Name}</h2>
+                <span style="background:var(--accent); color:white; padding:5px 12px; border-radius:10px; font-weight:800;">${f['Price Range'] || '$$'}</span>
             </div>
-            <p style="font-size:1.1rem; margin-bottom:20px;">⭐ ${f.Rating || '5.0'} | <span style="color:var(--accent); font-weight:800;">${f.Vibe || ''}</span></p>
-            <p style="line-height:1.7; opacity:0.9;">${f.Description || 'Una joya gastronómica seleccionada para ti.'}</p>
-            <div style="background:var(--bg-alt); padding:25px; border-radius:20px; border-left:8px solid var(--accent); margin:30px 0;">
-                <p style="margin:0; font-style:italic;">"${f.Highlight || '¡La experiencia que estabas buscando!'}"</p>
-                <hr style="border:0; border-top:1px solid var(--accent); margin:15px 0; opacity:0.3;">
+            <p>⭐ ${f.Rating || '5.0'} | <b>${f.Vibe || 'Excelente'}</b></p>
+            <p>${f.Description || 'Una joya seleccionada de SF.'}</p>
+            <div style="background:var(--bg-alt); padding:20px; border-radius:20px; border-left:8px solid var(--accent); margin:20px 0;">
                 <p style="margin:0; font-weight:800;">🔥 MUST TRY: ${f['Must Try']}</p>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center;">SITIO WEB</a>
-                ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center;">LLAMAR</a>` : ''}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center;">SITIO WEB</a>
+                ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center;">LLAMAR</a>` : ''}
             </div>
         </div>`;
     document.getElementById('modal-detail').style.display = 'flex';
 }
 
-/* Esta función filtra los restaurantes según la bandera que presionaste y crea las tarjetitas con sus logos */
+/* Filtro los locales al tocar una bandera */
 function showBrandsByText(name) {
     const c = document.getElementById('brands-container');
     document.getElementById('brands-section').style.display = 'block';
     c.innerHTML = "";
-    cache.brands.filter(b => b.fields['cuisine type']?.some(id => cache.cuisines.find(x => x.id === id)?.fields.Name === name)).forEach(b => {
-        const div = document.createElement('div'); div.className = 'brand-card'; div.onclick = () => openModal(b);
-        div.innerHTML = `<img src="${b.fields.Logo?.[0]?.url || ''}"><p style="font-weight:800; color:var(--accent); margin-top:15px;">${b.fields.Name}</p>`;
+    
+    const filtered = cache.brands.filter(b => 
+        b.fields['cuisine type']?.some(id => cache.cuisines.find(x => x.id === id)?.fields.Name === name)
+    );
+
+    filtered.forEach(b => {
+        const div = document.createElement('div'); 
+        div.className = 'brand-card'; 
+        div.onclick = () => openModal(b);
+        div.innerHTML = `
+            <img src="${b.fields.Logo?.[0]?.url || 'https://via.placeholder.com/150'}">
+            <p style="font-weight:800; color:var(--accent); margin-top:15px;">${b.fields.Name}</p>`;
         c.appendChild(div);
     });
     document.getElementById('brands-section').scrollIntoView({ behavior: 'smooth' });
 }
 
-/* Con esto cierro el modal de detalles cuando el usuario hace clic fuera o en la X */
+/* Cerrar el modal */
 function closeModal() { document.getElementById('modal-detail').style.display = 'none'; }
 
-/* Aquí controlo mi carrusel para que las fotos pasen solas cada 3 segundos y la web se vea dinámica */
+/* Control del carrusel */
 let currentSlide = 0;
 const slides = document.querySelectorAll('.carousel-slide');
 
@@ -149,6 +172,7 @@ function nextSlide() {
     showSlide(currentSlide);
 }
 
-setInterval(nextSlide, 3000); 
+setInterval(nextSlide, 3500); 
 
+/* Arranco todo */
 init();
