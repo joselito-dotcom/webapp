@@ -2,7 +2,7 @@
 const TOKEN = "patZFjogX1XgnDhuO.e131f470b23d3cfb8428aaf726a158ad460ed907dbaf1f9e777f904ca95407e3";
 const BASE_ID = "appHNVXjYwymT0EVC";
 let cache = { brands: [], cuisines: [], locations: [] };
-let mainMap = null; // Variable para controlar que el mapa no se duplique
+let mainMap = null;
 
 /* Traducciones */
 const translations = {
@@ -30,7 +30,6 @@ const translations = {
     }
 };
 
-/* Carga inicial de datos */
 async function init() {
     try {
         const h = { Authorization: `Bearer ${TOKEN}` };
@@ -51,6 +50,55 @@ async function init() {
     }
 }
 
+/* Modal con Mapa Corregido para Móvil (HTTPS) */
+function openModal(brand) {
+    const f = brand.fields;
+    const personalHighlight = f.Highlight || "";
+    const loc = cache.locations.find(l => l.fields.brand?.[0] === brand.id);
+
+    const modalBody = document.getElementById('modal-body');
+    if (!modalBody) return;
+
+    modalBody.innerHTML = `
+        <img src="${f.photos?.[0]?.url || 'https://via.placeholder.com/600x300'}" style="width:100%; height:250px; object-fit:cover;">
+        <div style="padding:25px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2 style="color:var(--accent); margin:0; font-size:1.5rem;">${f.Name}</h2>
+                <span style="background:var(--accent); color:white; padding:5px 12px; border-radius:10px; font-weight:800;">${f['Price Range'] || '$$'}</span>
+            </div>
+
+            ${personalHighlight ? `
+                <div style="background: rgba(212, 175, 55, 0.1); border-radius: 12px; padding: 15px; border-left: 5px solid var(--accent); margin-bottom: 20px;">
+                    <p style="margin: 0; font-style: italic; color: var(--text); font-size: 0.95rem;">"${personalHighlight}"</p>
+                </div>` : ''}
+
+            <div style="background:var(--bg-alt); padding:15px; border-radius:15px; border-left:6px solid var(--accent); margin:15px 0;">
+                <p style="margin:0; font-weight:800; font-size:0.9rem;">🔥 MUST TRY: ${f['Must Try'] || 'Delicioso'}</p>
+            </div>
+
+            ${loc ? `
+                <div style="margin-bottom:20px;">
+                    <p style="font-size:0.85rem; margin-bottom:8px;">📍 <b>Dirección:</b> ${loc.fields.Address}</p>
+                    <div style="width:100%; height:180px; border-radius:15px; overflow:hidden; border:2px solid var(--accent);">
+                        <iframe width="100%" height="100%" frameborder="0" style="border:0" 
+                        src="https://maps.google.com/maps?q=${loc.fields.Lat},${loc.fields.Lng}&hl=es&z=15&output=embed">
+                        </iframe>
+                    </div>
+                </div>` : ''}
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center; font-size:0.8rem;">SITIO WEB</a>
+                ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center; font-size:0.8rem;">LLAMAR</a>` : ''}
+            </div>
+        </div>`;
+    document.getElementById('modal-detail').style.display = 'flex';
+}
+
+function openModalById(brandId) {
+    const brand = cache.brands.find(b => b.id === brandId);
+    if(brand) openModal(brand);
+}
+
 /* Cambio de idioma */
 function changeLanguage(lang) {
     document.querySelectorAll('[data-key]').forEach(el => {
@@ -61,7 +109,6 @@ function changeLanguage(lang) {
     });
 }
 
-/* Modo Oscuro/Claro */
 function toggleTheme() {
     const b = document.body;
     const isDark = b.getAttribute('data-theme') === 'dark';
@@ -70,205 +117,105 @@ function toggleTheme() {
     if (btn) btn.innerText = isDark ? '🌙' : '☀️';
 }
 
-/* Modal con Highlights y Mapa */
-function openModal(brand) {
-    const f = brand.fields;
-    const personalHighlight = f.Highlight || "";
-    
-    // Buscamos la primera locación de esta marca para el mapa
-    const loc = cache.locations.find(l => l.fields.brand?.[0] === brand.id);
-
-    const modalBody = document.getElementById('modal-body');
-    if (!modalBody) return;
-
-    modalBody.innerHTML = `
-        <img src="${f.photos?.[0]?.url || 'https://via.placeholder.com/600x300'}" style="width:100%; height:300px; object-fit:cover;">
-        <div style="padding:30px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h2 style="color:var(--accent); margin:0;">${f.Name}</h2>
-                <span style="background:var(--accent); color:white; padding:5px 12px; border-radius:10px; font-weight:800;">${f['Price Range'] || '$$'}</span>
-            </div>
-
-            ${personalHighlight ? `
-                <div style="background: rgba(212, 175, 55, 0.15); border-radius: 12px; padding: 15px; border-left: 5px solid var(--accent); margin-bottom: 20px;">
-                    <p style="margin: 0; font-style: italic; color: var(--text); font-size: 1rem; line-height: 1.4;">
-                        "${personalHighlight}"
-                    </p>
-                </div>` : ''}
-
-            <p>⭐ ${f.Rating || '5.0'} | <b>${f.Vibe || 'Excelente'}</b></p>
-            
-            <div style="background:var(--bg-alt); padding:20px; border-radius:20px; border-left:8px solid var(--accent); margin:20px 0;">
-                <p style="margin:0; font-weight:800;">🔥 MUST TRY: ${f['Must Try'] || 'Delicioso'}</p>
-            </div>
-
-            ${loc ? `
-                <div style="margin-bottom:20px;">
-                    <p style="font-size:0.9rem; margin-bottom:10px;">📍 <b>Dirección:</b> ${loc.fields.Address}</p>
-                    <iframe width="100%" height="200" style="border-radius:15px; border:2px solid var(--accent);" frameborder="0" 
-                    src="https://maps.google.com/maps?q=${loc.fields.Lat},${loc.fields.Lng}&hl=es&z=15&output=embed"></iframe>
-                </div>` : ''}
-            
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center;">SITIO WEB</a>
-                ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center;">LLAMAR</a>` : ''}
-            </div>
-        </div>`;
-    document.getElementById('modal-detail').style.display = 'flex';
-}
-
-/* Función segura para abrir modal desde la ruleta */
-function openModalById(brandId) {
-    const brand = cache.brands.find(b => b.id === brandId);
-    if(brand) openModal(brand);
-}
-
-/* Lógica de Banderas */
 function showBrandsByText(name) {
     const c = document.getElementById('brands-container');
     const s = document.getElementById('brands-section');
     if (!c || !s) return;
-
     s.style.display = 'block';
     c.innerHTML = "";
-    
     const filtered = cache.brands.filter(b => 
         b.fields['cuisine type']?.some(id => cache.cuisines.find(x => x.id === id)?.fields.Name === name)
     );
-
     filtered.forEach(b => {
         const div = document.createElement('div'); 
         div.className = 'brand-card'; 
         div.onclick = () => openModal(b);
-        div.innerHTML = `
-            <img src="${b.fields.Logo?.[0]?.url || 'https://via.placeholder.com/150'}">
-            <p style="font-weight:800; color:var(--accent); margin-top:15px;">${b.fields.Name}</p>`;
+        div.innerHTML = `<img src="${b.fields.Logo?.[0]?.url || 'https://via.placeholder.com/150'}"><p style="font-weight:800; color:var(--accent); margin-top:15px;">${b.fields.Name}</p>`;
         c.appendChild(div);
     });
     s.scrollIntoView({ behavior: 'smooth' });
 }
 
-/* Ruleta Blindada contra errores de comillas */
 async function startDobleSpin() {
     const d = document.getElementById('casino-display');
     const p = document.getElementById('final-prize');
     const b = document.getElementById('btn-spin');
     if(!d || !p || !b) return;
-
     p.style.display = 'none'; d.style.display = 'block'; b.disabled = true;
-
     const nats = ["Peruvian", "Mexican", "Japanese", "Chinese", "Thai", "Salvadoran", "American"];
-    for(let i=0; i<15; i++) { 
-        d.innerText = nats[Math.floor(Math.random()*nats.length)]; 
-        await new Promise(r=>setTimeout(r,70)); 
-    }
+    for(let i=0; i<12; i++) { d.innerText = nats[Math.floor(Math.random()*nats.length)]; await new Promise(r=>setTimeout(r,80)); }
     const winNat = nats[Math.floor(Math.random()*nats.length)];
     d.innerText = "🌍 " + winNat;
-
     setTimeout(async () => {
-        const filtered = cache.brands.filter(br => 
-            br.fields['cuisine type']?.some(id => cache.cuisines.find(x => x.id === id)?.fields.Name === winNat)
-        );
-        
-        if (filtered.length === 0) {
-            d.innerText = "No hay locales aún";
-            b.disabled = false;
-            return;
-        }
-
-        for(let i=0; i<15; i++) { 
-            d.innerText = filtered[Math.floor(Math.random()*filtered.length)].fields.Name; 
-            await new Promise(r=>setTimeout(r,70)); 
-        }
-        
+        const filtered = cache.brands.filter(br => br.fields['cuisine type']?.some(id => cache.cuisines.find(x => x.id === id)?.fields.Name === winNat));
+        if (filtered.length === 0) { d.innerText = "No hay locales"; b.disabled = false; return; }
+        for(let i=0; i<12; i++) { d.innerText = filtered[Math.floor(Math.random()*filtered.length)].fields.Name; await new Promise(r=>setTimeout(r,80)); }
         const winner = filtered[Math.floor(Math.random()*filtered.length)];
         d.innerText = "🍴 " + winner.fields.Name;
-
         setTimeout(() => {
             d.style.display = 'none'; p.style.display = 'block';
             const currentLang = document.querySelector('#lang-select').value || 'es';
-            const btnLabel = translations[currentLang].view_details_btn;
-
-            p.innerHTML = `
-                <div style="background:var(--bg-alt); padding:30px; border-radius:25px; border:2.5px solid var(--accent);">
-                    <p style="margin:0; font-size:1.4rem;"><b>${winner.fields.Name}</b></p>
-                    <div style="background:var(--accent); color:white; padding:15px; border-radius:15px; margin:15px 0; font-weight:800;">🔥 MUST TRY: ${winner.fields['Must Try'] || 'Delicioso Plato'}</div>
-                    <button onclick="openModalById('${winner.id}')" class="btn-main">${btnLabel}</button>
-                </div>`;
+            p.innerHTML = `<div style="background:var(--bg-alt); padding:25px; border-radius:25px; border:2.5px solid var(--accent);">
+                <p style="margin:0; font-size:1.2rem;"><b>${winner.fields.Name}</b></p>
+                <div style="background:var(--accent); color:white; padding:12px; border-radius:12px; margin:12px 0; font-weight:800; font-size:0.8rem;">🔥 MUST TRY: ${winner.fields['Must Try'] || 'Delicioso'}</div>
+                <button onclick="openModalById('${winner.id}')" class="btn-main">${translations[currentLang].view_details_btn}</button>
+            </div>`;
             b.disabled = false;
-        }, 1000);
-    }, 1200);
+        }, 800);
+    }, 1000);
 }
 
-function closeModal() { 
-    document.getElementById('modal-detail').style.display = 'none'; 
-}
+function closeModal() { document.getElementById('modal-detail').style.display = 'none'; }
 
-/* --- FUNCIONES DE MAPA Y DISTANCIA --- */
+/* --- FUNCIONES DE CERCANÍA --- */
 
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 3958.8;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
 function getNearbyLocations() {
     if (!navigator.geolocation) return;
-    
     navigator.geolocation.getCurrentPosition(position => {
         const uLat = position.coords.latitude;
         const uLng = position.coords.longitude;
-
         let dists = cache.locations.map(loc => {
             const brandInfo = cache.brands.find(b => b.id === loc.fields.brand?.[0]);
-            const d = getDistance(uLat, uLng, loc.fields.Lat, loc.fields.Lng);
-            return { ...loc, brandInfo, distance: d };
+            return { ...loc, brandInfo, distance: getDistance(uLat, uLng, loc.fields.Lat, loc.fields.Lng) };
         }).filter(item => item.brandInfo).sort((a, b) => a.distance - b.distance).slice(0, 5);
-
         renderNearby(dists, uLat, uLng);
-    }, error => {
-        console.warn("Ubicación bloqueada, el mapa no mostrará cercanía.");
-    });
+    }, () => { console.warn("Ubicación denegada."); });
 }
 
 function renderNearby(top5, uLat, uLng) {
     const list = document.getElementById('nearby-list');
     if (!list) return;
-
-    if (mainMap) mainMap.remove(); // Limpiar mapa si ya existe
+    if (mainMap) mainMap.remove();
     mainMap = L.map('map-main').setView([uLat, uLng], 13);
-    
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);
     L.marker([uLat, uLng]).addTo(mainMap).bindPopup("Tú estás aquí 📍").openPopup();
-
     list.innerHTML = "";
     top5.forEach((loc, i) => {
-        const brand = loc.brandInfo;
-        const flag = loc.fields.Lookup || "📍"; 
-        
         const item = document.createElement('div');
         item.className = 'distance-item';
-        item.onclick = () => openModal(brand);
-        item.innerHTML = `
-            <b>${i+1}. ${brand.fields.Name} ${flag}</b>
-            <span>${loc.distance.toFixed(1)} millas</span>
-        `;
+        item.onclick = () => openModal(loc.brandInfo);
+        item.innerHTML = `<b>${i+1}. ${loc.brandInfo.fields.Name} ${loc.fields.Lookup || '📍'}</b><span>${loc.distance.toFixed(1)} millas</span>`;
         list.appendChild(item);
-        L.marker([loc.fields.Lat, loc.fields.Lng]).addTo(mainMap).bindPopup(brand.fields.Name);
+        L.marker([loc.fields.Lat, loc.fields.Lng]).addTo(mainMap).bindPopup(loc.brandInfo.fields.Name);
     });
+    // Forzar actualización del tamaño del mapa (Fix para móviles)
+    setTimeout(() => { mainMap.invalidateSize(); }, 500);
 }
 
-/* Carrusel automático */
 setInterval(() => {
-    const slides = document.querySelectorAll('.carousel-slide');
-    if (slides.length === 0) return;
-    let activeIdx = Array.from(slides).findIndex(s => s.classList.contains('active'));
-    slides[activeIdx].classList.remove('active');
-    slides[(activeIdx + 1) % slides.length].classList.add('active');
+    const s = document.querySelectorAll('.carousel-slide');
+    if (!s.length) return;
+    let idx = Array.from(s).findIndex(x => x.classList.contains('active'));
+    s[idx].classList.remove('active');
+    s[(idx + 1) % s.length].classList.add('active');
 }, 3500);
 
 init();
