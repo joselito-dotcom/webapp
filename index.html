@@ -7,6 +7,8 @@
     <link rel="icon" type="image/png" href="gatologo1.jpg"> 
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body data-theme="dark"> 
     <nav class="settings-bar">
@@ -78,6 +80,26 @@
 
     <section id="brands-section" style="display:none; padding:40px 20px;">
         <div class="logos-grid" id="brands-container"></div>
+    </section>
+
+    <section id="nearby-section" class="nearby-section">
+        <div class="nearby-card">
+            <h2 style="text-align:center; color:var(--primary); margin-bottom: 40px;" data-key="nearby_title">📍 Los 5 más cercanos</h2>
+            
+            <div class="cat-frame-container">
+                <div class="cat-ear left"></div>
+                <div class="cat-ear right"></div>
+                
+                <div class="cat-frame-body">
+                    <div id="map-main" style="height: 350px; z-index: 1;"></div>
+                </div>
+                
+                <div class="cat-paw left"></div>
+                <div class="cat-paw right"></div>
+            </div>
+            
+            <div id="nearby-list" class="nearby-list" style="margin-top: 40px;"></div>
+        </div>
     </section>
 
     <section class="contact-section">

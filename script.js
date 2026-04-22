@@ -2,6 +2,7 @@
 const TOKEN = "patZFjogX1XgnDhuO.e131f470b23d3cfb8428aaf726a158ad460ed907dbaf1f9e777f904ca95407e3";
 const BASE_ID = "appHNVXjYwymT0EVC";
 let cache = { brands: [], cuisines: [], locations: [] };
+let mainMap = null; // Variable para controlar que el mapa no se duplique
 
 /* Traducciones */
 const translations = {
@@ -11,6 +12,7 @@ const translations = {
         ruleta_title: "¿No sabes qué comer hoy?", 
         ruleta_btn: "🎰 ¡ELIGE POR MÍ!", 
         choose_nation: "Selecciona una Nación", 
+        nearby_title: "📍 Los 5 más cercanos",
         contact_title: "Libro de Sugerencias",
         view_details_btn: "VER FICHA COMPLETA",
         host_msg: '"Mi compa <strong>Gadiel</strong> probó la Jalea de <strong>El Mono</strong> y quedó impresionado... ¡es otro nivel!"'
@@ -21,6 +23,7 @@ const translations = {
         ruleta_title: "Don't know what to eat?", 
         ruleta_btn: "🎰 CHOOSE FOR ME!", 
         choose_nation: "Select a Nation", 
+        nearby_title: "📍 The 5 Nearby",
         contact_title: "Suggestion Book",
         view_details_btn: "VIEW DETAILS",
         host_msg: '"My buddy <strong>Gadiel</strong> tried the Jalea from <strong>El Mono</strong> and was impressed... it\'s on another level!"'
@@ -39,7 +42,10 @@ async function init() {
         const b = await rB.json(); cache.brands = b.records || [];
         const c = await rC.json(); cache.cuisines = c.records || [];
         const l = await rL.json(); cache.locations = l.records || [];
+        
         console.log("Datos cargados correctamente");
+        getNearbyLocations(); 
+
     } catch (e) {
         console.error("Error cargando datos de Airtable:", e);
     }
@@ -64,10 +70,13 @@ function toggleTheme() {
     if (btn) btn.innerText = isDark ? '🌙' : '☀️';
 }
 
-/* Modal con Highlights Corregido */
+/* Modal con Highlights y Mapa */
 function openModal(brand) {
     const f = brand.fields;
     const personalHighlight = f.Highlight || "";
+    
+    // Buscamos la primera locación de esta marca para el mapa
+    const loc = cache.locations.find(l => l.fields.brand?.[0] === brand.id);
 
     const modalBody = document.getElementById('modal-body');
     if (!modalBody) return;
@@ -88,19 +97,30 @@ function openModal(brand) {
                 </div>` : ''}
 
             <p>⭐ ${f.Rating || '5.0'} | <b>${f.Vibe || 'Excelente'}</b></p>
-            <p>${f.Description || 'Una joya seleccionada de SF.'}</p>
             
             <div style="background:var(--bg-alt); padding:20px; border-radius:20px; border-left:8px solid var(--accent); margin:20px 0;">
                 <p style="margin:0; font-weight:800;">🔥 MUST TRY: ${f['Must Try'] || 'Delicioso'}</p>
             </div>
+
+            ${loc ? `
+                <div style="margin-bottom:20px;">
+                    <p style="font-size:0.9rem; margin-bottom:10px;">📍 <b>Dirección:</b> ${loc.fields.Address}</p>
+                    <iframe width="100%" height="200" style="border-radius:15px; border:2px solid var(--accent);" frameborder="0" 
+                    src="https://maps.google.com/maps?q=${loc.fields.Lat},${loc.fields.Lng}&hl=es&z=15&output=embed"></iframe>
+                </div>` : ''}
             
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center;">SITIO WEB</a>
                 ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center;">LLAMAR</a>` : ''}
             </div>
         </div>`;
-    const modal = document.getElementById('modal-detail');
-    if (modal) modal.style.display = 'flex';
+    document.getElementById('modal-detail').style.display = 'flex';
+}
+
+/* Función segura para abrir modal desde la ruleta */
+function openModalById(brandId) {
+    const brand = cache.brands.find(b => b.id === brandId);
+    if(brand) openModal(brand);
 }
 
 /* Lógica de Banderas */
@@ -128,7 +148,7 @@ function showBrandsByText(name) {
     s.scrollIntoView({ behavior: 'smooth' });
 }
 
-/* Ruleta */
+/* Ruleta Blindada contra errores de comillas */
 async function startDobleSpin() {
     const d = document.getElementById('casino-display');
     const p = document.getElementById('final-prize');
@@ -173,7 +193,7 @@ async function startDobleSpin() {
                 <div style="background:var(--bg-alt); padding:30px; border-radius:25px; border:2.5px solid var(--accent);">
                     <p style="margin:0; font-size:1.4rem;"><b>${winner.fields.Name}</b></p>
                     <div style="background:var(--accent); color:white; padding:15px; border-radius:15px; margin:15px 0; font-weight:800;">🔥 MUST TRY: ${winner.fields['Must Try'] || 'Delicioso Plato'}</div>
-                    <button onclick='openModal(${JSON.stringify(winner).replace(/'/g, "&apos;")})' class="btn-main">${btnLabel}</button>
+                    <button onclick="openModalById('${winner.id}')" class="btn-main">${btnLabel}</button>
                 </div>`;
             b.disabled = false;
         }, 1000);
@@ -181,20 +201,74 @@ async function startDobleSpin() {
 }
 
 function closeModal() { 
-    const modal = document.getElementById('modal-detail');
-    if (modal) modal.style.display = 'none'; 
+    document.getElementById('modal-detail').style.display = 'none'; 
 }
 
-/* Carrusel */
-let currentSlide = 0;
-const slides = document.querySelectorAll('.carousel-slide');
-function nextSlide() {
+/* --- FUNCIONES DE MAPA Y DISTANCIA --- */
+
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 3958.8;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+function getNearbyLocations() {
+    if (!navigator.geolocation) return;
+    
+    navigator.geolocation.getCurrentPosition(position => {
+        const uLat = position.coords.latitude;
+        const uLng = position.coords.longitude;
+
+        let dists = cache.locations.map(loc => {
+            const brandInfo = cache.brands.find(b => b.id === loc.fields.brand?.[0]);
+            const d = getDistance(uLat, uLng, loc.fields.Lat, loc.fields.Lng);
+            return { ...loc, brandInfo, distance: d };
+        }).filter(item => item.brandInfo).sort((a, b) => a.distance - b.distance).slice(0, 5);
+
+        renderNearby(dists, uLat, uLng);
+    }, error => {
+        console.warn("Ubicación bloqueada, el mapa no mostrará cercanía.");
+    });
+}
+
+function renderNearby(top5, uLat, uLng) {
+    const list = document.getElementById('nearby-list');
+    if (!list) return;
+
+    if (mainMap) mainMap.remove(); // Limpiar mapa si ya existe
+    mainMap = L.map('map-main').setView([uLat, uLng], 13);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);
+    L.marker([uLat, uLng]).addTo(mainMap).bindPopup("Tú estás aquí 📍").openPopup();
+
+    list.innerHTML = "";
+    top5.forEach((loc, i) => {
+        const brand = loc.brandInfo;
+        const flag = loc.fields.Lookup || "📍"; 
+        
+        const item = document.createElement('div');
+        item.className = 'distance-item';
+        item.onclick = () => openModal(brand);
+        item.innerHTML = `
+            <b>${i+1}. ${brand.fields.Name} ${flag}</b>
+            <span>${loc.distance.toFixed(1)} millas</span>
+        `;
+        list.appendChild(item);
+        L.marker([loc.fields.Lat, loc.fields.Lng]).addTo(mainMap).bindPopup(brand.fields.Name);
+    });
+}
+
+/* Carrusel automático */
+setInterval(() => {
+    const slides = document.querySelectorAll('.carousel-slide');
     if (slides.length === 0) return;
-    slides.forEach(slide => slide.classList.remove('active'));
-    currentSlide = (currentSlide + 1) % slides.length;
-    slides[currentSlide].classList.add('active');
-}
-setInterval(nextSlide, 3500); 
+    let activeIdx = Array.from(slides).findIndex(s => s.classList.contains('active'));
+    slides[activeIdx].classList.remove('active');
+    slides[(activeIdx + 1) % slides.length].classList.add('active');
+}, 3500);
 
-/* Ejecución */
 init();
