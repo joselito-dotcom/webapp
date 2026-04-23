@@ -50,7 +50,7 @@ async function init() {
     }
 }
 
-/* Modal con Rating, Vibes y Botones Separados */
+/* Modal con Rating, Vibes y Botones  */
 function openModal(brand) {
     const f = brand.fields;
     const rating = f.Rating || 0;
