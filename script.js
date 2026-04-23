@@ -50,10 +50,14 @@ async function init() {
     }
 }
 
-/* Modal con Mapa Corregido para Móvil (HTTPS) */
+/* Modal con Rating, Vibes y Botones Separados */
 function openModal(brand) {
     const f = brand.fields;
+    const rating = f.Rating || 0;
+    const description = f.Description || "No description available.";
+    const vibes = f.Vibes || "Good vibes only ✨"; 
     const personalHighlight = f.Highlight || "";
+    const mustTry = f['Must Try'] || "Chef's selection";
     const loc = cache.locations.find(l => l.fields.brand?.[0] === brand.id);
 
     const modalBody = document.getElementById('modal-body');
@@ -61,19 +65,33 @@ function openModal(brand) {
 
     modalBody.innerHTML = `
         <img src="${f.photos?.[0]?.url || 'https://via.placeholder.com/600x300'}" style="width:100%; height:250px; object-fit:cover;">
+        
         <div style="padding:25px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h2 style="color:var(--accent); margin:0; font-size:1.5rem;">${f.Name}</h2>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                <div>
+                    <h2 style="color:var(--accent); margin:0; font-size:1.5rem; text-transform:uppercase;">${f.Name}</h2>
+                    <div style="color:#ffb400; font-size:1.1rem; margin-top:5px;">
+                        ${'★'.repeat(Math.floor(rating))}${rating % 1 !== 0 ? '½' : ''} 
+                        <span style="color:var(--text); font-size:0.85rem; opacity:0.7;">(${rating})</span>
+                    </div>
+                </div>
                 <span style="background:var(--accent); color:white; padding:5px 12px; border-radius:10px; font-weight:800;">${f['Price Range'] || '$$'}</span>
+            </div>
+
+            <p style="font-size:0.95rem; line-height:1.5; color:var(--text); margin:15px 0;">${description}</p>
+
+            <div style="margin-bottom:15px; font-style:italic; color:var(--accent); font-size:0.9rem; font-weight:600;">
+                ✨ "${vibes}"
             </div>
 
             ${personalHighlight ? `
                 <div style="background: rgba(212, 175, 55, 0.1); border-radius: 12px; padding: 15px; border-left: 5px solid var(--accent); margin-bottom: 20px;">
-                    <p style="margin: 0; font-style: italic; color: var(--text); font-size: 0.95rem;">"${personalHighlight}"</p>
+                    <p style="margin: 0; font-style: italic; color: var(--text); font-size: 0.9rem;">"${personalHighlight}"</p>
                 </div>` : ''}
 
-            <div style="background:var(--bg-alt); padding:15px; border-radius:15px; border-left:6px solid var(--accent); margin:15px 0;">
-                <p style="margin:0; font-weight:800; font-size:0.9rem;">🔥 MUST TRY: ${f['Must Try'] || 'Delicioso'}</p>
+            <div style="background:var(--bg-alt); padding:15px; border-radius:15px; border-left:6px solid var(--accent); margin-bottom:20px;">
+                <p style="margin:0; font-weight:800; font-size:0.8rem; color:var(--accent); text-transform:uppercase; letter-spacing:1px;">🔥 Must Try</p>
+                <p style="margin:5px 0 0 0; font-weight:600;">${mustTry}</p>
             </div>
 
             ${loc ? `
@@ -86,9 +104,9 @@ function openModal(brand) {
                     </div>
                 </div>` : ''}
             
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center; font-size:0.8rem;">SITIO WEB</a>
-                ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center; font-size:0.8rem;">LLAMAR</a>` : ''}
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:10px;">
+                <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center; font-size:0.8rem; display:flex; align-items:center; justify-content:center; height:50px; margin:0;">SITIO WEB</a>
+                ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center; font-size:0.8rem; display:flex; align-items:center; justify-content:center; height:50px; margin:0;">LLAMAR</a>` : ''}
             </div>
         </div>`;
     document.getElementById('modal-detail').style.display = 'flex';
@@ -99,7 +117,6 @@ function openModalById(brandId) {
     if(brand) openModal(brand);
 }
 
-/* Cambio de idioma */
 function changeLanguage(lang) {
     document.querySelectorAll('[data-key]').forEach(el => {
         const key = el.getAttribute('data-key');
@@ -167,8 +184,6 @@ async function startDobleSpin() {
 
 function closeModal() { document.getElementById('modal-detail').style.display = 'none'; }
 
-/* --- FUNCIONES DE CERCANÍA --- */
-
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 3958.8;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -202,11 +217,10 @@ function renderNearby(top5, uLat, uLng) {
         const item = document.createElement('div');
         item.className = 'distance-item';
         item.onclick = () => openModal(loc.brandInfo);
-        item.innerHTML = `<b>${i+1}. ${loc.brandInfo.fields.Name} ${loc.fields.Lookup || '📍'}</b><span>${loc.distance.toFixed(1)} millas</span>`;
+        item.innerHTML = `<b>${i+1}. ${loc.brandInfo.fields.Name}</b><span>${loc.distance.toFixed(1)} millas</span>`;
         list.appendChild(item);
         L.marker([loc.fields.Lat, loc.fields.Lng]).addTo(mainMap).bindPopup(loc.brandInfo.fields.Name);
     });
-    // Forzar actualización del tamaño del mapa (Fix para móviles)
     setTimeout(() => { mainMap.invalidateSize(); }, 500);
 }
 

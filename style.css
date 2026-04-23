@@ -70,12 +70,17 @@ body { margin: 0; font-family: 'Poppins', sans-serif; background: var(--bg); col
 /* --- FOOTER --- */
 footer { background: #0f172a; color: white; padding: 60px 20px; text-align: center; border-top: 4px solid var(--accent); }
 
+/* FILTRO VERDE PARA GITHUB */
+.github-icon {
+    filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%);
+}
+
 /* --- MARCO DE GATITO CON OREJITAS --- */
 .cat-frame-container {
     position: relative;
     max-width: 900px;
     margin: 0 auto;
-    padding-top: 45px; /* Espacio para las orejas */
+    padding-top: 45px; 
 }
 
 .cat-ear, .cat-paw {
