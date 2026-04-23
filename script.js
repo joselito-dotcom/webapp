@@ -3,6 +3,7 @@ const TOKEN = "patZFjogX1XgnDhuO.e131f470b23d3cfb8428aaf726a158ad460ed907dbaf1f9
 const BASE_ID = "appHNVXjYwymT0EVC";
 let cache = { brands: [], cuisines: [], locations: [] };
 let mainMap = null;
+let modalMap = null; // Variable para el mapa del detalle
 
 /* Traducciones */
 const translations = {
@@ -30,6 +31,33 @@ const translations = {
     }
 };
 
+/* --- EFECTOS VISUALES (HUELLAS Y LLUVIA) --- */
+document.addEventListener('mousedown', (e) => {
+    const paw = document.createElement('div');
+    paw.className = 'cat-paw-click';
+    paw.style.left = `${e.pageX - 15}px`;
+    paw.style.top = `${e.pageY - 15}px`;
+    document.body.appendChild(paw);
+    setTimeout(() => paw.remove(), 800);
+});
+
+function triggerBurgerRain() {
+    const container = document.getElementById('burger-rain-container');
+    if (!container) return;
+    container.style.display = 'block';
+    const items = ['🍔', '🍟', '🍕', '🌭', '🌮'];
+    const interval = setInterval(() => {
+        const drop = document.createElement('div');
+        drop.className = 'food-drop';
+        drop.innerText = items[Math.floor(Math.random() * items.length)];
+        drop.style.left = Math.random() * 100 + 'vw';
+        drop.style.animationDuration = (Math.random() * 2 + 1) + 's';
+        container.appendChild(drop);
+        setTimeout(() => drop.remove(), 3000);
+    }, 150);
+    setTimeout(() => { clearInterval(interval); setTimeout(() => container.style.display = 'none', 3000); }, 4500);
+}
+
 async function init() {
     try {
         const h = { Authorization: `Bearer ${TOKEN}` };
@@ -42,74 +70,62 @@ async function init() {
         const c = await rC.json(); cache.cuisines = c.records || [];
         const l = await rL.json(); cache.locations = l.records || [];
         
-        console.log("Datos cargados correctamente");
         getNearbyLocations(); 
-
-    } catch (e) {
-        console.error("Error cargando datos de Airtable:", e);
-    }
+    } catch (e) { console.error("Error cargando Airtable:", e); }
 }
 
-/* Modal con Rating, Vibes y Botones  */
+/* Modal Corregido con Mapa Leaflet y Google Maps Link */
 function openModal(brand) {
     const f = brand.fields;
     const rating = f.Rating || 0;
-    const description = f.Description || "No description available.";
-    const vibes = f.Vibes || "Good vibes only ✨"; 
-    const personalHighlight = f.Highlight || "";
-    const mustTry = f['Must Try'] || "Chef's selection";
     const loc = cache.locations.find(l => l.fields.brand?.[0] === brand.id);
+    const gMapsUrl = loc ? `https://www.google.com/maps/search/?api=1&query=${loc.fields.Lat},${loc.fields.Lng}` : "#";
 
-    const modalBody = document.getElementById('modal-body');
-    if (!modalBody) return;
-
-    modalBody.innerHTML = `
-        <img src="${f.photos?.[0]?.url || 'https://via.placeholder.com/600x300'}" style="width:100%; height:250px; object-fit:cover;">
-        
+    document.getElementById('modal-body').innerHTML = `
+        <img src="${f.photos?.[0]?.url || 'https://via.placeholder.com/600x300'}" style="width:100%; height:250px; object-fit:cover; border-bottom:3px solid var(--accent);">
         <div style="padding:25px;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-                <div>
-                    <h2 style="color:var(--accent); margin:0; font-size:1.5rem; text-transform:uppercase;">${f.Name}</h2>
-                    <div style="color:#ffb400; font-size:1.1rem; margin-top:5px;">
-                        ${'★'.repeat(Math.floor(rating))}${rating % 1 !== 0 ? '½' : ''} 
-                        <span style="color:var(--text); font-size:0.85rem; opacity:0.7;">(${rating})</span>
-                    </div>
-                </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="color:var(--accent); margin:0; text-transform:uppercase;">${f.Name}</h2>
                 <span style="background:var(--accent); color:white; padding:5px 12px; border-radius:10px; font-weight:800;">${f['Price Range'] || '$$'}</span>
             </div>
-
-            <p style="font-size:0.95rem; line-height:1.5; color:var(--text); margin:15px 0;">${description}</p>
-
-            <div style="margin-bottom:15px; font-style:italic; color:var(--accent); font-size:0.9rem; font-weight:600;">
-                ✨ "${vibes}"
+            <div style="color:#ffb400; margin: 10px 0;">${'★'.repeat(Math.floor(rating))} (${rating})</div>
+            <p style="margin: 15px 0; line-height: 1.5;">${f.Description || ''}</p>
+            
+            <div style="background:rgba(212,175,55,0.1); padding:15px; border-radius:12px; border-left:5px solid var(--accent); margin-bottom:15px;">
+                <p style="margin:0; font-weight:800; color:var(--accent); font-size:0.75rem;">💡 HIGHLIGHT</p>
+                <p style="margin:5px 0 0 0; font-style:italic;">"${f.Highlight || 'Reseña de Alek'}"</p>
             </div>
 
-            ${personalHighlight ? `
-                <div style="background: rgba(212, 175, 55, 0.1); border-radius: 12px; padding: 15px; border-left: 5px solid var(--accent); margin-bottom: 20px;">
-                    <p style="margin: 0; font-style: italic; color: var(--text); font-size: 0.9rem;">"${personalHighlight}"</p>
-                </div>` : ''}
-
-            <div style="background:var(--bg-alt); padding:15px; border-radius:15px; border-left:6px solid var(--accent); margin-bottom:20px;">
-                <p style="margin:0; font-weight:800; font-size:0.8rem; color:var(--accent); text-transform:uppercase; letter-spacing:1px;">🔥 Must Try</p>
-                <p style="margin:5px 0 0 0; font-weight:600;">${mustTry}</p>
+            <div style="background:var(--bg-alt); padding:15px; border-radius:12px; border-left:5px solid var(--accent); margin-bottom:20px;">
+                <p style="margin:0; font-weight:800; color:var(--accent); font-size:0.75rem;">🔥 MUST TRY</p>
+                <p style="margin:5px 0 0 0; font-weight:600;">${f['Must Try'] || 'Plato Jefe'}</p>
             </div>
 
             ${loc ? `
                 <div style="margin-bottom:20px;">
-                    <p style="font-size:0.85rem; margin-bottom:8px;">📍 <b>Dirección:</b> ${loc.fields.Address}</p>
-                    <div style="width:100%; height:180px; border-radius:15px; overflow:hidden; border:2px solid var(--accent);">
-                        <iframe width="100%" height="100%" frameborder="0" style="border:0" 
-                        src="https://maps.google.com/maps?q=${loc.fields.Lat},${loc.fields.Lng}&hl=es&z=15&output=embed">
-                        </iframe>
-                    </div>
+                    <p style="font-size:0.9rem; margin-bottom:10px;">
+                        <a href="${gMapsUrl}" target="_blank" style="color:var(--accent); font-weight:bold; text-decoration:underline;">📍 Dirección: ${loc.fields.Address}</a>
+                    </p>
+                    <div id="map-modal" onclick="window.open('${gMapsUrl}', '_blank')" style="height:200px; border-radius:15px; border:2px solid var(--accent); cursor:pointer;"></div>
                 </div>` : ''}
             
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:10px;">
-                <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center; font-size:0.8rem; display:flex; align-items:center; justify-content:center; height:50px; margin:0;">SITIO WEB</a>
-                ${f.phone ? `<a href="tel:${f.phone}" class="btn-main" style="background:#1e293b; text-decoration:none; text-align:center; font-size:0.8rem; display:flex; align-items:center; justify-content:center; height:50px; margin:0;">LLAMAR</a>` : ''}
+            <div style="display:flex; gap:20px; margin-top:25px;">
+                <a href="${f.Website}" target="_blank" class="btn-main" style="text-decoration:none; text-align:center; height:50px; flex:1; display:flex; align-items:center; justify-content:center;">WEB</a>
+                <a href="tel:${f.phone}" class="btn-main" style="background:#475569; text-decoration:none; text-align:center; height:50px; flex:1; display:flex; align-items:center; justify-content:center;">CALL</a>
             </div>
         </div>`;
+    
     document.getElementById('modal-detail').style.display = 'flex';
+
+    if(loc) {
+        setTimeout(() => {
+            if(modalMap) modalMap.remove();
+            modalMap = L.map('map-modal').setView([loc.fields.Lat, loc.fields.Lng], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(modalMap);
+            L.marker([loc.fields.Lat, loc.fields.Lng]).addTo(modalMap);
+            modalMap.invalidateSize();
+        }, 300);
+    }
 }
 
 function openModalById(brandId) {
@@ -159,6 +175,9 @@ async function startDobleSpin() {
     const b = document.getElementById('btn-spin');
     if(!d || !p || !b) return;
     p.style.display = 'none'; d.style.display = 'block'; b.disabled = true;
+    
+    triggerBurgerRain(); // Activa lluvia
+
     const nats = ["Peruvian", "Mexican", "Japanese", "Chinese", "Thai", "Salvadoran", "American"];
     for(let i=0; i<12; i++) { d.innerText = nats[Math.floor(Math.random()*nats.length)]; await new Promise(r=>setTimeout(r,80)); }
     const winNat = nats[Math.floor(Math.random()*nats.length)];
@@ -172,7 +191,7 @@ async function startDobleSpin() {
         setTimeout(() => {
             d.style.display = 'none'; p.style.display = 'block';
             const currentLang = document.querySelector('#lang-select').value || 'es';
-            p.innerHTML = `<div style="background:var(--bg-alt); padding:25px; border-radius:25px; border:2.5px solid var(--accent);">
+            p.innerHTML = `<div style="background:var(--bg-alt); padding:25px; border-radius:25px; border:2.5px solid var(--accent); text-align:center;">
                 <p style="margin:0; font-size:1.2rem;"><b>${winner.fields.Name}</b></p>
                 <div style="background:var(--accent); color:white; padding:12px; border-radius:12px; margin:12px 0; font-weight:800; font-size:0.8rem;">🔥 MUST TRY: ${winner.fields['Must Try'] || 'Delicioso'}</div>
                 <button onclick="openModalById('${winner.id}')" class="btn-main">${translations[currentLang].view_details_btn}</button>
